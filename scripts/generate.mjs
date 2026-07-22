@@ -28,7 +28,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const N = Number(process.argv[2] ?? 3000);
 const topology = process.argv[3] ?? 'barrel';
 const used = Number(process.argv[4] ?? N);
-if (!['barrel', 'flat'].includes(topology)) throw new Error(`topology must be barrel|flat, got ${topology}`);
+if (!['barrel', 'flat', 'named'].includes(topology)) throw new Error(`topology must be barrel|flat|named, got ${topology}`);
 if (used > N) throw new Error(`used (${used}) cannot exceed N (${N})`);
 
 const outDir = join(root, 'generated');
@@ -57,12 +57,22 @@ if (topology === 'barrel') {
   for (let i = 0; i < N; i++) barrel += `export * from './leaf${i}.js';\n`;
   writeFileSync(join(outDir, 'barrel.js'), barrel);
 }
+if (topology === 'named') {
+  // Named re-export barrel — the react-use / most-libraries shape. Each export is
+  // pinned to exactly one module, so `lazy_barrel` *can* defer loading the unused
+  // members (unlike `export *`). Requires the barrel to be side-effect-free.
+  let barrel = '';
+  for (let i = 0; i < N; i++) barrel += `export { compute${i} } from './leaf${i}.js';\n`;
+  writeFileSync(join(outDir, 'barrel.js'), barrel);
+  // Declare the whole generated package side-effect-free so `lazy_barrel` is eligible.
+  writeFileSync(join(outDir, 'package.json'), JSON.stringify({ name: 'generated', sideEffects: false }, null, 2));
+}
 
 // The entry references one export from the first `used` leaves. In `flat` only
 // those leaves are reachable; in `barrel` the star-re-export forces resolution
 // across all N leaves regardless of `used`.
 let entry = '';
-if (topology === 'barrel') {
+if (topology === 'barrel' || topology === 'named') {
   const names = Array.from({ length: used }, (_, i) => `compute${i}`);
   entry += `import { ${names.join(', ')} } from './barrel.js';\n`;
 } else {

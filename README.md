@@ -46,8 +46,12 @@ Pinned to `rolldown@1.1.5` (the version bundled by `vite@8.1.5`) and a recent
 npm run matrix
 
 # or drive it manually:
-node scripts/generate.mjs <N> <barrel|flat> [used]   # write generated/index.js
-node scripts/build.mjs <rolldown|esbuild>            # bundle it (run under a peak-RSS meter)
+node scripts/generate.mjs <N> <barrel|flat|named> [used]  # write generated/index.js
+node scripts/build.mjs <rolldown|esbuild>                # bundle it (run under a peak-RSS meter)
+
+# topologies: `barrel` = `export *` star barrel; `named` = `export { x } from` named
+# barrel (+ a `sideEffects:false` manifest, so `experimental.lazyBarrel` is eligible);
+# `flat` = entry imports the used leaves directly.
 ```
 
 `scripts/matrix.sh` runs `scripts/build.mjs` under the OS peak-RSS meter (`/usr/bin/time -v`
@@ -76,6 +80,25 @@ esbuild is ~flat; rolldown climbs ~55 MB per 1,000 trivial modules and the ratio
 widens with N. Real modules (JSX/TSX, imports, types) carry much larger ASTs than
 these synthetic ~0.5 KB leaves, so the same slope reaches multiple GB at real app
 sizes.
+
+### Table 1b — `lazy_barrel` fixes the *named* barrel, but not `export *`
+
+rolldown ships an opt-in `experimental.lazyBarrel` that defers *loading* a barrel's
+unused members — so the dead ASTs are never allocated (this is measured at the
+`post-scan` phase boundary, where the peak occurs). It only applies to modules
+declared side-effect-free (`"sideEffects": false`), and only to **named** re-exports:
+
+| N=8000, used=50, side-effect-free barrel | post-scan peak RSS |
+|---|---:|
+| **named** barrel (`export { x } from './x'`), lazyBarrel **off** | 599 MB |
+| **named** barrel, lazyBarrel **on** | **211 MB** — the 7,950 unused members are never loaded |
+| **star** barrel (`export * from './x'`), lazyBarrel **on** | 599 MB — no effect |
+| flat (`used=50` imported directly), reference | 135 MB |
+
+Two gaps: it's off by default, and it **cannot defer `export *`** — a name can't be
+attributed to a star target without loading it, so all targets are loaded to resolve
+any named import. The `date-fns` main entry is exactly this `export *` shape (245
+star re-exports); `react-use` is the named shape (113 named re-exports).
 
 ### Table 2 — barrel penalty (`used = 50`; the number of leaves that *exist* scales with N)
 
