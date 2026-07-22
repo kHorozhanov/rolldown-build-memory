@@ -56,6 +56,10 @@ if (topology === 'barrel') {
   let barrel = '';
   for (let i = 0; i < N; i++) barrel += `export * from './leaf${i}.js';\n`;
   writeFileSync(join(outDir, 'barrel.js'), barrel);
+  // Declare side-effect-free so `experimental.lazyBarrel` is eligible. On rolldown
+  // 1.1.5 this star barrel still loads every target; with rolldown#10394 it defers
+  // them (on-demand star probing).
+  writeFileSync(join(outDir, 'package.json'), JSON.stringify({ name: 'generated', sideEffects: false }, null, 2));
 }
 if (topology === 'named') {
   // Named re-export barrel — the react-use / most-libraries shape. Each export is

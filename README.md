@@ -92,13 +92,19 @@ declared side-effect-free (`"sideEffects": false`), and only to **named** re-exp
 |---|---:|
 | **named** barrel (`export { x } from './x'`), lazyBarrel **off** | 599 MB |
 | **named** barrel, lazyBarrel **on** | **211 MB** — the 7,950 unused members are never loaded |
-| **star** barrel (`export * from './x'`), lazyBarrel **on** | 599 MB — no effect |
+| **star** barrel (`export * from './x'`), lazyBarrel **on** (rolldown 1.1.5) | 599 MB — no effect |
+| **star** barrel, lazyBarrel **on** ([rolldown#10394](https://github.com/rolldown/rolldown/pull/10394)) | **196 MB** — targets probed on demand |
 | flat (`used=50` imported directly), reference | 135 MB |
 
-Two gaps: it's off by default, and it **cannot defer `export *`** — a name can't be
-attributed to a star target without loading it, so all targets are loaded to resolve
+`lazyBarrel` is off by default, and it **could not defer `export *`** — a name can't be
+attributed to a star target without loading it, so all targets were loaded to resolve
 any named import. The `date-fns` main entry is exactly this `export *` shape (245
 star re-exports); `react-use` is the named shape (113 named re-exports).
+
+The star gap is fixed in **[rolldown/rolldown#10394](https://github.com/rolldown/rolldown/pull/10394)**
+(on-demand star probing for `sideEffects:false` barrels: 649 MB → 196 MB here, output
+byte-identical), filed alongside **[issue #10393](https://github.com/rolldown/rolldown/issues/10393)**
+which also tracks the per-module retention of Table 1.
 
 ### Table 2 — barrel penalty (`used = 50`; the number of leaves that *exist* scales with N)
 
