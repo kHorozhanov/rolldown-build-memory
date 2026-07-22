@@ -1,3 +1,8 @@
 node_modules/
 generated/
 package-lock.json
+
+# local test harness against a source build of rolldown (machine-specific paths)
+scripts/build-local.mjs
+scripts/build-min.mjs
+scripts/build-lb.mjs
