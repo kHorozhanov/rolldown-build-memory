@@ -1,0 +1,17 @@
+{
+  "name": "rolldown-build-memory",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal reproduction: rolldown's build-time peak memory on a moderate module graph",
+  "scripts": {
+    "generate": "node scripts/generate.mjs",
+    "build:rolldown": "node scripts/build.mjs rolldown",
+    "build:esbuild": "node scripts/build.mjs esbuild",
+    "matrix": "bash scripts/matrix.sh"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "rolldown": "1.1.5"
+  }
+}
